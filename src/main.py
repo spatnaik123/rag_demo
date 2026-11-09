@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+from src.retrieval.rag import answer_question
 
 app = FastAPI()
 
@@ -14,5 +15,6 @@ class AskOut(BaseModel):
     answer: str
 
 @app.post("/ask", response_model=AskOut)
-def ask(body: AskIn):
-    return AskOut(answer=f"You asked: {body.question}")
+async def ask(body: AskIn):
+    answer = await answer_question(body.question)
+    return AskOut(answer=answer)

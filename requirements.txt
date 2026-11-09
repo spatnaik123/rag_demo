@@ -6,3 +6,5 @@ langchain-pinecone
 langchain-docling
 docling
 python-dotenv
+fastapi
+uvicorn
