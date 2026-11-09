@@ -1,8 +1,9 @@
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
-from src.retrieval.rag import answer_question
+import json
 import logging
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+from src.retrieval.rag import answer_question, stream_answer
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -26,3 +27,16 @@ async def ask(body: AskIn):
         logger.exception("RAG failed")
         raise HTTPException(status_code=503, detail="Answer service is temporarily unavailable. Please try again.")
     return AskOut(answer=answer)
+
+
+@app.post("/ask/stream")
+async def ask_stream(body: AskIn):
+    async def event_generator():
+        try:
+            async for piece in stream_answer(body.question):
+                yield f"data: {json.dumps(piece)}\n\n"
+        except Exception:
+            logger.exception("Streaming failed")
+            yield "event: error\ndata: Answer service is temporarily unavailable.\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
