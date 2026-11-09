@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from src.retrieval.rag import answer_question
+import logging
+from fastapi import FastAPI, HTTPException
+
+logger = logging.getLogger("uvicorn.error")
 
 app = FastAPI()
 
@@ -16,5 +20,9 @@ class AskOut(BaseModel):
 
 @app.post("/ask", response_model=AskOut)
 async def ask(body: AskIn):
-    answer = await answer_question(body.question)
+    try:
+        answer = await answer_question(body.question)
+    except Exception:
+        logger.exception("RAG failed")
+        raise HTTPException(status_code=503, detail="Answer service is temporarily unavailable. Please try again.")
     return AskOut(answer=answer)

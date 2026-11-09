@@ -10,18 +10,22 @@ llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 
 async def answer_question(question: str) -> str:
-    results = await vector_store.asimilarity_search(question, k=5)
-    context = "\n\n".join(r.page_content for r in results)
+    results = await vector_store.asimilarity_search_with_score(question, k=5)
+    #print([round(score, 2) for _, score in results])   # temporary, to tune the threshold
+    relevant = [doc for doc, score in results if score >= 0.4]
+    if not relevant:
+        return "I don't know."
+    context = "\n\n".join(doc.page_content for doc in relevant)
 
     prompt = f"""
-Answer the question using only the information provided in the context.
-If the answer is not available in the context, say "I don't know."
+                Answer the question using only the information provided in the context.
+                If the answer is not available in the context, say "I don't know."
 
-Context:
-{context}
+                Context:
+                {context}
 
-Question:
-{question}
-"""
+                Question:
+                {question}
+                """
     response = await llm.ainvoke(prompt)
     return response.content
